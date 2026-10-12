@@ -1,55 +1,51 @@
 import os
+import requests
 import phonenumbers
 from phonenumbers import carrier, geocoder, timezone
 
-def analyze_phone_number(phone_string):
+def comprehensive_number_analysis(phone_string):
+    results = {}
+    
     try:
-        # Parse the raw string into a phone number object
+        # 1. Offline Structural & Carrier Baseline
         parsed_number = phonenumbers.parse(phone_string)
+        results["formatted"] = phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
+        results["valid"] = phonenumbers.is_valid_number(parsed_number)
+        results["region"] = geocoder.description_for_number(parsed_number, "en") or "Unknown"
+        results["base_carrier"] = carrier.name_for_number(parsed_number, "en") or "Unknown"
+        results["line_type"] = phonenumbers.number_type(parsed_number)
         
-        # 1. Validation checks
-        is_valid = phonenumbers.is_valid_number(parsed_number)
-        is_possible = phonenumbers.is_possible_number(parsed_number)
+        # 2. Live Network Status & Identity Check via Carrier/HLR API
+        # (Requires an API key stored in environment variables, e.g., Twilio or HLR provider)
+        api_key = os.getenv("LOOKUP_API_KEY")
+        api_url = os.getenv("LOOKUP_API_ENDPOINT")
         
-        if not is_possible:
-            return {"error": "Invalid phone number format."}
+        if api_key and api_url:
+            headers = {"Authorization": f"Bearer {api_key}"}
+            response = requests.get(f"{api_url}/{phone_string}", headers=headers, timeout=10)
+            if response.status_code == 200:
+                api_data = response.json()
+                results["live_connection_status"] = api_data.get("connected", "Unknown (Requires HLR query)")
+                results["subscriber_live"] = api_data.get("live", "Unknown")
+                results["registered_name"] = api_data.get("caller_name", "Restricted / Unavailable")
+            else:
+                results["api_error"] = f"API returned status code {response.status_code}"
+        else:
+            results["live_connection_status"] = "API Key not provided (Skipped live HLR check)"
+            results["registered_name"] = "Requires carrier lookup API integration"
             
-        # 2. Extract structural and carrier metadata
-        formatted_international = phonenumbers.format_number(
-            parsed_number, phonenumbers.PhoneNumberFormat.INTERNATIONAL
-        )
+    except Exception as e:
+        results["error"] = str(e)
         
-        region_description = geocoder.description_for_number(parsed_number, "en")
-        carrier_name = carrier.name_for_number(parsed_number, "en")
-        time_zones = timezone.time_zones_for_number(parsed_number)
-        
-        number_type = phonenumbers.number_type(parsed_number)
-        type_mapping = {
-            phonenumbers.PhoneNumberType.MOBILE: "Mobile",
-            phonenumbers.PhoneNumberType.FIXED_LINE: "Fixed Line",
-            phonenumbers.PhoneNumberType.FIXED_LINE_OR_MOBILE: "Fixed Line or Mobile",
-            phonenumbers.PhoneNumberType.VOIP: "VoIP"
-        }
-        line_type = type_mapping.get(number_type, "Other / Unknown")
-
-        return {
-            "formatted": formatted_international,
-            "valid": is_valid,
-            "region": region_description or "Unknown Region",
-            "carrier": carrier_name or "Unknown Carrier",
-            "line_type": line_type,
-            "time_zones": list(time_zones)
-        }
-        
-    except phonenumbers.NumberParseException as e:
-        return {"error": str(e)}
+    return results
 
 if __name__ == "__main__":
-    # Pulls the number from environment variable or defaults to your target number
     target = os.getenv("TARGET_PHONE", "+2349163349757")
-    print(f"Analyzing target number: {target}\n")
-    result = analyze_phone_number(target)
+    print(f"=== Running Tracking Analysis for: {target} ===\n")
     
-    print("--- Phone Number Metadata ---")
-    for key, value in result.items():
-        print(f"{key.capitalize()}: {value}")
+    analysis_data = comprehensive_number_analysis(target)
+    
+    for key, value in analysis_data.items():
+        print(f"{key.replace('_', ' ').capitalize()}: {value}")
+        
+    print("\n[Note]: Live GPS coordinates cannot be retrieved from a phone number alone without an active device-side client app.")
