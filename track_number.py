@@ -17,28 +17,22 @@ def analyze_number_with_abstract_api(phone_string):
         api_key = os.getenv("FREE_LOOKUP_API_KEY")
         
         if api_key:
-            api_url = f"https://phonevalidation.abstractapi.com/v1/?api_key={api_key}&phone={phone_string}"
-            response = requests.get(api_url, timeout=10)
+            api_url = "https://phonevalidation.abstractapi.com/v1/"
+            params = {
+                "api_key": api_key.strip(),
+                "phone": phone_string.strip()
+            }
+            response = requests.get(api_url, params=params, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
                 results["is_valid_number"] = data.get("valid", "Unknown")
-                
-                # Parse nested carrier info
-                carrier_info = data.get("phone_carrier", {})
-                results["carrier"] = carrier_info.get("name", "Unknown")
-                results["line_type"] = carrier_info.get("line_type", "Unknown")
-                
-                # Parse nested location info
-                location_info = data.get("phone_location", {})
-                results["country"] = location_info.get("country_name", "Unknown")
-                results["api_location"] = location_info.get("region", "Not Provided")
+                results["line_type"] = data.get("type", "Unknown")
+                results["carrier"] = data.get("carrier", "Unknown")
+                results["country"] = data.get("country", {}).get("name", "Unknown")
+                results["location_city"] = data.get("location", "Not Provided")
             else:
-                results["api_error"] = (
-                    f"API request failed with status code {response.status_code}. "
-                    "Please verify that your secret key was generated specifically "
-                    "from the AbstractAPI 'Phone Intelligence / Phone Validation' dashboard."
-                )
+                results["api_error"] = f"API request failed with status code {response.status_code}. Response: {response.text}"
         else:
             results["api_status"] = "API Key not provided in environment secrets."
             
@@ -56,4 +50,4 @@ if __name__ == "__main__":
     for key, value in analysis_data.items():
         print(f"{key.replace('_', ' ').capitalize()}: {value}")
         
-    print("\n[Note]: api_location shows regional prefix data, not real-time live city GPS coordinates.")
+    print("\n[Note]: Location/city returns regional prefix data; live owner name and GPS tracking remain restricted by telecom privacy policies.")
