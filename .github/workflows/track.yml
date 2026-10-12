@@ -1,7 +1,7 @@
-name: AbstractAPI Phone Validation Pipeline
+name: Phone Tracking Pipeline
 
 on:
-  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+  workflow_dispatch:
   push:
     branches: [ main, master ]
 
@@ -18,12 +18,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Dependencies via Pip
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install phonenumbers requests
 
-      - name: Execute Tracking Script
+      - name: Run Tracking Script
         env:
           TARGET_PHONE: "+2349163349757"
           FREE_LOOKUP_API_KEY: ${{ secrets.FREE_LOOKUP_API_KEY }}
