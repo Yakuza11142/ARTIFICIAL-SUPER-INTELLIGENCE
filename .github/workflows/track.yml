@@ -1,12 +1,12 @@
-name: Phone Number Tracking Pipeline
+name: Advanced Number Tracker Pipeline
 
 on:
-  workflow_dispatch: # Allows manual trigger from the Actions tab in GitHub
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions tab
   push:
     branches: [ main, master ]
 
 jobs:
-  run-tracker:
+  track-number:
     runs-on: ubuntu-latest
     
     steps:
@@ -18,12 +18,15 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Dependencies & APIs via Pip
+      - name: Install Dependencies via Pip
         run: |
           python -m pip install --upgrade pip
           pip install phonenumbers requests
 
-      - name: Execute Tracking Script
+      - name: Execute Advanced Tracking Script
         env:
           TARGET_PHONE: "+2349163349757"
+          # Optional: Add your commercial API key under GitHub Repository Secrets named LOOKUP_API_KEY
+          LOOKUP_API_KEY: ${{ secrets.LOOKUP_API_KEY }}
+          LOOKUP_API_ENDPOINT: ${{ secrets.LOOKUP_API_ENDPOINT }}
         run: python track_number.py
