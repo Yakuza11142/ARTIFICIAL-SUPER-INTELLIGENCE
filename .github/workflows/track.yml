@@ -1,12 +1,12 @@
-name: Advanced Number Tracker Pipeline
+name: AbstractAPI Phone Validation Pipeline
 
 on:
-  workflow_dispatch: # Allows manual triggering from the GitHub Actions tab
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
   push:
     branches: [ main, master ]
 
 jobs:
-  track-number:
+  run-tracker:
     runs-on: ubuntu-latest
     
     steps:
@@ -23,10 +23,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install phonenumbers requests
 
-      - name: Execute Advanced Tracking Script
+      - name: Execute Tracking Script
         env:
           TARGET_PHONE: "+2349163349757"
-          # Optional: Add your commercial API key under GitHub Repository Secrets named LOOKUP_API_KEY
-          LOOKUP_API_KEY: ${{ secrets.LOOKUP_API_KEY }}
-          LOOKUP_API_ENDPOINT: ${{ secrets.LOOKUP_API_ENDPOINT }}
+          FREE_LOOKUP_API_KEY: ${{ secrets.FREE_LOOKUP_API_KEY }}
         run: python track_number.py
