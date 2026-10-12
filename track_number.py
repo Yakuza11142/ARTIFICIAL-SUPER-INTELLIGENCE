@@ -1,7 +1,7 @@
 import os
 import requests
 import phonenumbers
-from phonenumbers import carrier, geocoder
+from phonenumbers import geocoder
 
 def analyze_number_with_abstract_api(phone_string):
     results = {}
@@ -22,19 +22,25 @@ def analyze_number_with_abstract_api(phone_string):
             
             if response.status_code == 200:
                 data = response.json()
-                results["number_is_active"] = data.get("valid", "Unknown")
-                results["line_type"] = data.get("type", "Unknown")
-                results["carrier"] = data.get("carrier", "Unknown")
-                results["country"] = data.get("country", {}).get("name", "Unknown")
-                # Pulls whatever region/location string the API registers
-                results["api_location"] = data.get("location", "Not Provided by API")
+                results["is_valid_number"] = data.get("valid", "Unknown")
+                
+                # Parse nested carrier info
+                carrier_info = data.get("phone_carrier", {})
+                results["carrier"] = carrier_info.get("name", "Unknown")
+                results["line_type"] = carrier_info.get("line_type", "Unknown")
+                
+                # Parse nested location info
+                location_info = data.get("phone_location", {})
+                results["country"] = location_info.get("country_name", "Unknown")
+                results["api_location"] = location_info.get("region", "Not Provided")
             else:
-                results["api_error"] = f"API request failed with status code {response.status_code}"
+                results["api_error"] = (
+                    f"API request failed with status code {response.status_code}. "
+                    "Please verify that your secret key was generated specifically "
+                    "from the AbstractAPI 'Phone Intelligence / Phone Validation' dashboard."
+                )
         else:
-            results["api_status"] = "API Key not provided."
-            results["carrier"] = carrier.name_for_number(parsed_number, "en") or "MTN Nigeria"
-            results["line_type"] = "Mobile"
-            results["api_location"] = "Requires API Key"
+            results["api_status"] = "API Key not provided in environment secrets."
             
     except Exception as e:
         results["error"] = str(e)
