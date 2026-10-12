@@ -14,12 +14,13 @@ def analyze_number_with_abstract_api(phone_string):
         results["baseline_region"] = geocoder.description_for_number(parsed_number, "en") or "Nigeria"
         
         # 2. AbstractAPI Phone Validation Integration
-        api_key = os.getenv("FREE_LOOKUP_API_KEY")
+        raw_api_key = os.getenv("FREE_LOOKUP_API_KEY", "")
+        api_key = raw_api_key.strip() # Remove any hidden newlines or space characters
         
         if api_key:
             api_url = "https://phonevalidation.abstractapi.com/v1/"
             params = {
-                "api_key": api_key.strip(),
+                "api_key": api_key,
                 "phone": phone_string.strip()
             }
             response = requests.get(api_url, params=params, timeout=10)
@@ -49,5 +50,3 @@ if __name__ == "__main__":
     
     for key, value in analysis_data.items():
         print(f"{key.replace('_', ' ').capitalize()}: {value}")
-        
-    print("\n[Note]: Location/city returns regional prefix data; live owner name and GPS tracking remain restricted by telecom privacy policies.")
